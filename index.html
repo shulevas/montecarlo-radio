@@ -36,7 +36,14 @@
       <span class="dot"></span><span id="status-text">Tap to play</span>
     </div>
 
-    <section class="volume" aria-label="Volume">
+    <section id="now" class="now" aria-live="polite" hidden>
+      <p class="now-label">Now playing</p>
+      <p id="now-title" class="now-title"></p>
+      <p id="now-artist" class="now-artist"></p>
+    </section>
+
+    <!-- volume and compatibility mode: kept in code, hidden (on iPhone the slider has no effect) -->
+    <section class="volume" aria-label="Volume" hidden>
       <div class="vol-head">
         <span class="label">Volume</span>
         <output id="vol-value" class="vol-value">-30 dB</output>
@@ -49,7 +56,7 @@
       <p id="vol-note" class="note" hidden>Compatibility mode: use the phone volume buttons</p>
     </section>
 
-    <label class="compat">
+    <label class="compat" hidden>
       <input id="compat" type="checkbox">
       <span>Compatibility mode <small>(plain &lt;audio&gt;, no Web Audio)</small></span>
     </label>

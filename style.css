@@ -20,6 +20,7 @@
 }
 
 * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+[hidden] { display: none !important; }
 html, body { height: 100%; margin: 0; }
 body {
   background: var(--bg);
@@ -107,6 +108,31 @@ body {
 .status[data-state="reconnecting"] .dot { background: var(--warn); animation: blink 1s ease-in-out infinite; }
 .status[data-state="error"] .dot { background: var(--err); }
 @keyframes blink { 50% { opacity: .25; } }
+
+/* ---- now playing ---- */
+.now {
+  width: 100%;
+  min-height: 92px;              /* keeps the layout still when the song changes */
+  text-align: center;
+  animation: fade .5s ease;
+}
+.now p { margin: 0; }
+.now-label {
+  color: var(--hint); font-size: 11px;
+  letter-spacing: .2em; text-transform: uppercase;
+}
+.now-title {
+  margin-top: 10px !important;
+  font-size: 20px; line-height: 1.25; font-weight: 500;
+  display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;
+}
+.now-artist {
+  margin-top: 4px !important;
+  color: var(--gold); font-size: 14px;
+  letter-spacing: .12em; text-transform: uppercase;
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+@keyframes fade { from { opacity: 0; transform: translateY(4px); } to { opacity: 1; transform: none; } }
 
 /* ---- volume ---- */
 .volume { width: 100%; }

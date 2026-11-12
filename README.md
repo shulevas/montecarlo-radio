@@ -1,6 +1,6 @@
-# Radio Monte Carlo Limassol · Mini App
+# Radio Monte Carlo Limassol · web player
 
-A one-screen Telegram Mini App that plays the live stream of Radio Monte Carlo Limassol (104.5 FM, Cyprus). Built for background listening on iPhone, including very quiet levels.
+A one-screen player for the live stream of Radio Monte Carlo Limassol (104.5 FM, Cyprus). Works as a Home Screen app on iPhone, in any browser, and as a Telegram Mini App.
 
 Live page: https://shulevas.github.io/montecarlo-radio/
 
@@ -9,77 +9,41 @@ Unofficial. Not affiliated with the station; it only plays the public stream fro
 ## What it does
 
 - Play / pause, status (connecting, live, buffering, reconnecting).
-- Volume slider in dB from −60 dB (barely audible) to 0 dB, plus −/+ buttons for 1 dB steps. The value is remembered (localStorage and Telegram CloudStorage).
-- Lock screen / Control Center controls via Media Session (title, artwork, play/pause).
+- Now playing: song and artist, refreshed every 15 s while listening, also shown on the lock screen.
+- Lock screen / Control Center controls via Media Session (song, artist, artwork, play/pause).
 - Auto-reconnect when the stream drops (backoff 0.5 s → 15 s, watchdog for frozen streams, instant retry when the network comes back).
-- One fixed dark look in the station's colours: bottle green, a gunmetal play button with a gold light orbiting its rim while live, gold volume fill that gets brighter as you turn it up. Telegram's header is painted to match. Works in a normal browser too.
-- Compatibility mode: plain `<audio>` without Web Audio.
+- One dark look in the station's colours: bottle green, a gunmetal play button with a gold light orbiting its rim while live.
+- Volume: the phone's own buttons.
 
-## How the volume works
-
-iOS ignores `audio.volume` (it is always 1). So the stream goes through Web Audio:
-
-```
-<audio crossorigin="anonymous"> -> MediaElementSource -> GainNode -> destination
-```
-
-The slider is linear in decibels, so it is logarithmic in amplitude: two thirds of its travel is below −20 dB, where fine control matters when listening quietly. Gain = 10^(dB/20), changed with a 30 ms ramp so it never clicks.
-
-This needs CORS on the stream, otherwise Web Audio outputs silence. The stream `https://live.vblcast.com/proxy/montecarlo/stream` (Shoutcast, MP3 128 kbps) sends `Access-Control-Allow-Origin: *`, so no proxy is needed. If that ever changes, the volume will go silent in normal mode: switch on compatibility mode and see "If CORS disappears" below.
-
-In compatibility mode there is no Web Audio, so on iPhone only the system volume works (the slider is disabled there). On desktop and Android the slider still works through `audio.volume`.
-
-## Install on iPhone Home Screen (no Telegram needed)
+## Install on iPhone Home Screen
 
 1. Open https://shulevas.github.io/montecarlo-radio/ in Safari.
 2. Share → Add to Home Screen → Add.
 3. It opens full screen with its own icon, like an app.
 
-The Telegram bot below is optional: it opens the same page.
+## Sources
 
-## Compatibility mode, in short
+- Stream: `https://live.vblcast.com/proxy/montecarlo/stream` (Shoutcast, MP3 128 kbps), found on the station's live page.
+- Now playing: the Centova Cast endpoint `https://live.vblcast.com/external/rpc.php?m=streaminfo.get&username=montecarlo&rid=montecarlo`. It sends `Access-Control-Allow-Origin: *`; the Shoutcast `stats` / `currentsong` endpoints do not, and the stream refuses the preflight needed for in-stream ICY metadata.
+- The server double-encodes titles (UTF-8 read as Windows-1252, "BEYONCÃ‰"); `app.js` reverses that. Titles arrive in capitals and are shown in title case.
 
-- Off (default): audio goes through Web Audio, so the dB slider works on iPhone. iOS may suspend it in the background or on the lock screen.
-- On: a plain `<audio>` element. Most robust in the background, but on iPhone only the hardware volume buttons work.
+## Volume slider (hidden)
 
-Turn it on only if playback stops when the screen locks or the app goes to the background. Sound quality is the same in both modes.
+The page has a Web Audio volume slider in dB (−60…0) behind `FEATURE_VOLUME` in `app.js`. It works in desktop browsers, but on an iPhone it had no effect on this live stream, so it is off and playback uses a plain `<audio>`. Web pages cannot read or set the iPhone's system volume.
 
-## Set up the bot (BotFather, optional)
+## Telegram (optional)
 
-1. In Telegram open [@BotFather](https://t.me/BotFather), send `/newbot`, pick a name (e.g. `Monte Carlo Radio`) and a username ending in `bot`. Keep the token to yourself; this app does not need it.
-2. Menu button: `/mybots` → your bot → Bot Settings → Menu Button → Configure menu button → send the URL `https://shulevas.github.io/montecarlo-radio/` → send a title, e.g. `Radio`.
-3. Optional, an "Open" button in the bot profile and a direct link: `/mybots` → your bot → Bot Settings → Configure Mini App → Enable Mini App → same URL.
-4. Optional, a `t.me/<bot>/<app>` link: `/newapp` → choose the bot → title, description, a 640×360 picture → URL as above → short name (e.g. `radio`).
-5. Open the bot chat, tap the menu button. Pin the chat to reach it faster.
+The same page opens as a Mini App: in [@BotFather](https://t.me/BotFather) `/newbot`, then `/mybots` → the bot → Bot Settings → Menu Button → Configure menu button → the URL above. No bot token is needed by the page.
 
 ## iPhone checklist
 
-Do each block in normal mode first, then with compatibility mode on.
-
-- [ ] Opens from the menu button; the Telegram header is green like the page, in both Telegram light and dark themes.
-- [ ] While live, the gold light runs smoothly around the button rim (no stutter, phone does not get warm).
-- [ ] Play starts within a few seconds, status shows "Live".
-- [ ] Normal mode: moving the slider changes loudness smoothly all the way down to −60 dB (almost silent); −/+ buttons change it by 1 dB.
-- [ ] Close the Mini App and open it again: volume and mode are remembered.
-- [ ] Minimise the Mini App (swipe it down to the bar): keeps playing.
+- [ ] Opens from the Home Screen icon full screen, header area green.
+- [ ] Play starts within a few seconds, status shows "Live", song and artist appear.
+- [ ] Song changes on screen and on the lock screen within ~15 s of the radio switching tracks.
+- [ ] Lock the screen: keeps playing for 5+ minutes; lock screen shows song, artist and the icon (no white corners); pause and play there work.
 - [ ] Switch to another app: keeps playing.
-- [ ] Lock the screen: keeps playing for 5+ minutes; lock screen shows "Radio Monte Carlo · Limassol 104.5 FM" with the icon; pause and play from the lock screen work.
-- [ ] Silent switch on: still plays.
-- [ ] Airplane mode for ~10 s, then off: status shows reconnecting, then plays again by itself.
-- [ ] Interruption (call, Siri, a voice message in Telegram): after it, return to the app; it resumes or one tap resumes it.
-- [ ] Compatibility mode: slider disabled with a hint, phone volume buttons work; background and lock screen same as above.
-
-If normal mode goes silent when the screen locks but compatibility mode keeps playing, use compatibility mode for locked listening and set a low system volume.
-
-## If CORS disappears
-
-Options, from simplest:
-
-- Compatibility mode only: zero setup, but on iPhone only system volume.
-- Cloudflare Worker proxy that adds `Access-Control-Allow-Origin`: free tier, ~20 lines, low latency; needs a Cloudflare account, and long-lived streams count against Worker limits.
-- Small VPS with nginx `proxy_pass` + header: full control, no limits; costs money and needs upkeep.
-
-Then change `STREAM` in `app.js`.
+- [ ] Airplane mode for ~10 s, then off: reconnecting, then plays again by itself.
+- [ ] The gold light runs smoothly around the button rim; the phone does not get warm.
 
 ## Develop
 
@@ -89,13 +53,11 @@ No build. Serve the folder and open it:
 python3 -m http.server 8765
 ```
 
-Smoke test in headless Chromium against the real stream (measures the level after the GainNode at 0/−20/−40/−60 dB, checks persistence, compatibility mode, pause/resume):
+Smoke test in headless Chromium against the real stream and now-playing API:
 
 ```
 python3 -m venv .venv && .venv/bin/pip install playwright pillow
 .venv/bin/python tools/check.py
 ```
 
-Icons: edit `icon.svg`, then `.venv/bin/python tools/render_icons.py`.
-
-Files: `index.html`, `style.css`, `app.js`, `icon.svg`, `icon-192.png`, `icon-512.png`.
+Icons: edit `icon.svg`, then `.venv/bin/python tools/render_icons.py` (makes the rounded icons, plus full-bleed squares for iOS and the lock screen).
