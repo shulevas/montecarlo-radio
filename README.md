@@ -1,6 +1,6 @@
-# Monte Carlo Cyprus · Mini App
+# Radio Monte Carlo Limassol · Mini App
 
-A one-screen Telegram Mini App that plays the live stream of Radio Monte Carlo Cyprus. Built for background listening on iPhone, including very quiet levels.
+A one-screen Telegram Mini App that plays the live stream of Radio Monte Carlo Limassol (104.5 FM, Cyprus). Built for background listening on iPhone, including very quiet levels.
 
 Live page: https://shulevas.github.io/montecarlo-radio/
 
@@ -12,7 +12,7 @@ Unofficial. Not affiliated with the station; it only plays the public stream fro
 - Volume slider in dB from −60 dB (barely audible) to 0 dB, plus −/+ buttons for 1 dB steps. The value is remembered (localStorage and Telegram CloudStorage).
 - Lock screen / Control Center controls via Media Session (title, artwork, play/pause).
 - Auto-reconnect when the stream drops (backoff 0.5 s → 15 s, watchdog for frozen streams, instant retry when the network comes back).
-- Follows the Telegram theme (light/dark); works in a normal browser too.
+- One fixed dark look in the station's colours: bottle green, a gunmetal play button with a gold light orbiting its rim while live, gold volume fill that gets brighter as you turn it up. Telegram's header is painted to match. Works in a normal browser too.
 - Compatibility mode: plain `<audio>` without Web Audio.
 
 ## How the volume works
@@ -41,13 +41,14 @@ In compatibility mode there is no Web Audio, so on iPhone only the system volume
 
 Do each block in normal mode first, then with compatibility mode on.
 
-- [ ] Opens from the menu button, colours match the Telegram theme (try light and dark).
+- [ ] Opens from the menu button; the Telegram header is green like the page, in both Telegram light and dark themes.
+- [ ] While live, the gold light runs smoothly around the button rim (no stutter, phone does not get warm).
 - [ ] Play starts within a few seconds, status shows "Live".
 - [ ] Normal mode: moving the slider changes loudness smoothly all the way down to −60 dB (almost silent); −/+ buttons change it by 1 dB.
 - [ ] Close the Mini App and open it again: volume and mode are remembered.
 - [ ] Minimise the Mini App (swipe it down to the bar): keeps playing.
 - [ ] Switch to another app: keeps playing.
-- [ ] Lock the screen: keeps playing for 5+ minutes; lock screen shows "Monte Carlo Cyprus" with the icon; pause and play from the lock screen work.
+- [ ] Lock the screen: keeps playing for 5+ minutes; lock screen shows "Radio Monte Carlo · Limassol 104.5 FM" with the icon; pause and play from the lock screen work.
 - [ ] Silent switch on: still plays.
 - [ ] Airplane mode for ~10 s, then off: status shows reconnecting, then plays again by itself.
 - [ ] Interruption (call, Siri, a voice message in Telegram): after it, return to the app; it resumes or one tap resumes it.

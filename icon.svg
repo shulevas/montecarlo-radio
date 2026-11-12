@@ -1,10 +1,30 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
-  <rect width="512" height="512" rx="112" fill="#c8553d"/>
-  <g fill="none" stroke="#fff" stroke-linecap="round" stroke-width="26">
-    <path d="M176 176a113 113 0 0 0 0 160" opacity=".55"/>
-    <path d="M336 176a113 113 0 0 1 0 160" opacity=".55"/>
-    <path d="M124 124a186 186 0 0 0 0 264" opacity=".3"/>
-    <path d="M388 124a186 186 0 0 1 0 264" opacity=".3"/>
+  <defs>
+    <radialGradient id="metal" cx="42%" cy="36%" r="75%">
+      <stop offset="0" stop-color="#6b604a"/>
+      <stop offset=".45" stop-color="#3a362c"/>
+      <stop offset="1" stop-color="#1c1b17"/>
+    </radialGradient>
+    <linearGradient id="sheen" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#fff" stop-opacity=".16"/>
+      <stop offset=".5" stop-color="#fff" stop-opacity="0"/>
+      <stop offset="1" stop-color="#fff" stop-opacity=".06"/>
+    </linearGradient>
+    <linearGradient id="gold" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#f6e7b8"/>
+      <stop offset=".45" stop-color="#c9a45c"/>
+      <stop offset="1" stop-color="#f1d79a"/>
+    </linearGradient>
+  </defs>
+  <rect width="512" height="512" rx="112" fill="#10312b"/>
+  <circle cx="256" cy="256" r="178" fill="url(#metal)"/>
+  <circle cx="256" cy="256" r="178" fill="url(#sheen)"/>
+  <circle cx="256" cy="256" r="174" fill="none" stroke="url(#gold)" stroke-width="8"/>
+  <g fill="none" stroke="#e9d49a" stroke-linecap="round" stroke-width="20">
+    <path d="M196 196a85 85 0 0 0 0 120"/>
+    <path d="M316 196a85 85 0 0 1 0 120"/>
+    <path d="M156 156a141 141 0 0 0 0 200" opacity=".5"/>
+    <path d="M356 156a141 141 0 0 1 0 200" opacity=".5"/>
   </g>
-  <circle cx="256" cy="256" r="42" fill="#fff"/>
+  <circle cx="256" cy="256" r="30" fill="#e9d49a"/>
 </svg>

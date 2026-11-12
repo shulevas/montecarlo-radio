@@ -4,7 +4,7 @@
   // Direct Shoutcast stream found on https://montecarlo.cy/live/ (MP3 128 kbps).
   // It sends "Access-Control-Allow-Origin: *", so Web Audio can process it.
   const STREAM = 'https://live.vblcast.com/proxy/montecarlo/stream';
-  const STATION = 'Monte Carlo Cyprus';
+  const STATION = 'Radio Monte Carlo';
 
   const DB_MIN = -60;
   const DB_MAX = 0;
@@ -333,7 +333,7 @@
     const base = new URL('.', location.href).href;
     navigator.mediaSession.metadata = new MediaMetadata({
       title: STATION,
-      artist: 'Live radio',
+      artist: 'Limassol · 104.5 FM',
       album: 'montecarlo.cy',
       artwork: [
         { src: base + 'icon-192.png', sizes: '192x192', type: 'image/png' },
@@ -347,24 +347,28 @@
     ['seekbackward', 'seekforward', 'seekto', 'previoustrack', 'nexttrack'].forEach((a) => set(a, null));
   }
 
+  // ---------- theme: fixed dark look; paint Telegram's own bars to match ----------
+  function applyScheme() {
+    const bg = getComputedStyle(document.documentElement).getPropertyValue('--bg').trim();
+    if (!/^#[0-9a-f]{6}$/i.test(bg)) return;
+    if (tgAtLeast('6.1')) {
+      try { tg.setHeaderColor(bg); tg.setBackgroundColor(bg); } catch (e) { /* ignore */ }
+    }
+    if (tgAtLeast('7.10') && tg.setBottomBarColor) {
+      try { tg.setBottomBarColor(bg); } catch (e) { /* ignore */ }
+    }
+  }
+
   // ---------- Telegram ----------
   if (tg) {
     try {
       tg.ready();
       tg.expand();
-      if (tgAtLeast('6.1')) {
-        tg.setHeaderColor('bg_color');
-        tg.setBackgroundColor('bg_color');
-      }
       if (tgAtLeast('7.7') && tg.disableVerticalSwipes) tg.disableVerticalSwipes(); // slider drags must not close the app
-      if (tgAtLeast('6.1')) {
-        tg.onEvent('themeChanged', () => {
-          tg.setHeaderColor('bg_color');
-          tg.setBackgroundColor('bg_color');
-        });
-      }
+      if (tgAtLeast('6.1')) tg.onEvent('themeChanged', applyScheme);
     } catch (e) { /* older client */ }
   }
+  applyScheme();
 
   // ---------- init ----------
   setVolume(DB_DEFAULT, false);
