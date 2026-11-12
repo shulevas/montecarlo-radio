@@ -29,7 +29,22 @@ This needs CORS on the stream, otherwise Web Audio outputs silence. The stream `
 
 In compatibility mode there is no Web Audio, so on iPhone only the system volume works (the slider is disabled there). On desktop and Android the slider still works through `audio.volume`.
 
-## Set up the bot (BotFather)
+## Install on iPhone Home Screen (no Telegram needed)
+
+1. Open https://shulevas.github.io/montecarlo-radio/ in Safari.
+2. Share → Add to Home Screen → Add.
+3. It opens full screen with its own icon, like an app.
+
+The Telegram bot below is optional: it opens the same page.
+
+## Compatibility mode, in short
+
+- Off (default): audio goes through Web Audio, so the dB slider works on iPhone. iOS may suspend it in the background or on the lock screen.
+- On: a plain `<audio>` element. Most robust in the background, but on iPhone only the hardware volume buttons work.
+
+Turn it on only if playback stops when the screen locks or the app goes to the background. Sound quality is the same in both modes.
+
+## Set up the bot (BotFather, optional)
 
 1. In Telegram open [@BotFather](https://t.me/BotFather), send `/newbot`, pick a name (e.g. `Monte Carlo Radio`) and a username ending in `bot`. Keep the token to yourself; this app does not need it.
 2. Menu button: `/mybots` → your bot → Bot Settings → Menu Button → Configure menu button → send the URL `https://shulevas.github.io/montecarlo-radio/` → send a title, e.g. `Radio`.
