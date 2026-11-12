@@ -160,5 +160,21 @@ input[type="range"]::-moz-range-thumb {
   display: flex; align-items: center; gap: 10px;
   color: var(--hint); font-size: 13px; cursor: pointer;
 }
-.compat input { width: 18px; height: 18px; accent-color: var(--gold); margin: 0; }
+/* custom checkbox: iOS ignores accent-color and draws a black box */
+.compat input {
+  -webkit-appearance: none; appearance: none;
+  flex: none; width: 20px; height: 20px; margin: 0;
+  border-radius: 6px;
+  border: 1.5px solid rgba(233, 212, 154, .55);
+  background: transparent;
+  display: grid; place-items: center;
+}
+.compat input::after {
+  content: ""; width: 10px; height: 6px; margin-top: -2px;
+  border: solid var(--bg); border-width: 0 0 2px 2px;
+  transform: rotate(-45deg);
+  opacity: 0;
+}
+.compat input:checked { background: var(--gold); border-color: var(--gold); }
+.compat input:checked::after { opacity: 1; }
 .compat small { opacity: .75; }
