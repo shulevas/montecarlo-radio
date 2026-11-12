@@ -1,0 +1,50 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no">
+  <meta name="color-scheme" content="light dark">
+  <title>Monte Carlo Cyprus · Live</title>
+  <link rel="icon" href="icon.svg" type="image/svg+xml">
+  <link rel="apple-touch-icon" href="icon-512.png">
+  <link rel="stylesheet" href="style.css">
+  <script src="https://telegram.org/js/telegram-web-app.js"></script>
+</head>
+<body>
+  <main class="app">
+    <header class="station">
+      <h1 class="title">Monte Carlo</h1>
+      <p class="subtitle">Cyprus · live</p>
+    </header>
+
+    <button id="play" class="play" type="button" aria-label="Play">
+      <svg class="ico ico-play" viewBox="0 0 24 24" aria-hidden="true"><path d="M8 5.5v13l11-6.5z"/></svg>
+      <svg class="ico ico-pause" viewBox="0 0 24 24" aria-hidden="true"><path d="M7 5h3.5v14H7zM13.5 5H17v14h-3.5z"/></svg>
+    </button>
+
+    <div id="status" class="status" data-state="idle" role="status" aria-live="polite">
+      <span class="dot"></span><span id="status-text">Tap to play</span>
+    </div>
+
+    <section class="volume" aria-label="Volume">
+      <div class="vol-head">
+        <span class="label">Volume</span>
+        <output id="vol-value" class="vol-value">-30 dB</output>
+      </div>
+      <div class="vol-row">
+        <button id="vol-down" class="step" type="button" aria-label="Quieter">−</button>
+        <input id="vol" type="range" min="-60" max="0" step="0.5" value="-30">
+        <button id="vol-up" class="step" type="button" aria-label="Louder">+</button>
+      </div>
+      <p id="vol-note" class="note" hidden>Compatibility mode: use the phone volume buttons</p>
+    </section>
+
+    <label class="compat">
+      <input id="compat" type="checkbox">
+      <span>Compatibility mode <small>(plain &lt;audio&gt;, no Web Audio)</small></span>
+    </label>
+  </main>
+
+  <script src="app.js"></script>
+</body>
+</html>
