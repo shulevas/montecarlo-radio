@@ -336,8 +336,9 @@
       artist: 'Limassol · 104.5 FM',
       album: 'montecarlo.cy',
       artwork: [
-        { src: base + 'icon-192.png', sizes: '192x192', type: 'image/png' },
-        { src: base + 'icon-512.png', sizes: '512x512', type: 'image/png' },
+        // full-bleed squares: iOS fills transparent corners with white on the lock screen
+        { src: base + 'apple-touch-icon.png', sizes: '180x180', type: 'image/png' },
+        { src: base + 'icon-maskable-512.png', sizes: '512x512', type: 'image/png' },
       ],
     });
     const set = (action, fn) => { try { navigator.mediaSession.setActionHandler(action, fn); } catch (e) { /* unsupported */ } };
