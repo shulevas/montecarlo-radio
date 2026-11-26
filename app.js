@@ -13,7 +13,7 @@
   // MP3 stream, decodes it in ~0.5 s pieces and plays them through a GainNode.
   const QUIET_MIN = 0.03;           // 3 % amplitude = -30 dB
   const QUIET_DEFAULT = 0.25;
-  const QUIET_STEP = 5;             // +/- buttons, in slider units (0..100)
+  const QUIET_STEP = 5;             // +/- buttons, in percent
   const CHUNK_FRAMES = 19;          // MP3 frames per decoded piece (~0.5 s)
   const OVERLAP_FRAMES = 4;         // decoded again before each piece: bit reservoir + filterbank warm-up
                                     // (3 is already sample-exact against one-shot decoding in tests)
@@ -78,7 +78,10 @@
   const posToGain = (p) => Math.exp(LN_MIN * (1 - p / 100));        // log scale: fine steps at the bottom
   const gainToPos = (g) => 100 * (1 - Math.log(g) / LN_MIN);
   const clampGain = (g) => Math.min(1, Math.max(QUIET_MIN, g));
-  const fmtPct = (g) => (g >= 0.095 ? Math.round(g * 100) : (g * 100).toFixed(1)) + '%';
+  const fmtPct = (g) => {
+    const p = g * 100;
+    return (p >= 9.5 || Math.abs(p - Math.round(p)) < 0.05 ? Math.round(p) : p.toFixed(1)) + '%';
+  };
 
   function setStatus(state, text) {
     ui.status.dataset.state = state;
@@ -523,8 +526,10 @@
   });
 
   ui.vol.addEventListener('input', () => setQuietGain(posToGain(parseFloat(ui.vol.value)), true));
-  ui.down.addEventListener('click', () => setQuietGain(posToGain(gainToPos(quietGain) - QUIET_STEP), true));
-  ui.up.addEventListener('click', () => setQuietGain(posToGain(gainToPos(quietGain) + QUIET_STEP), true));
+  // +/- go to the next round 5 % (23 % -> 20 % / 25 %); below 5 % the floor is QUIET_MIN
+  const pct = () => parseFloat(fmtPct(quietGain));        // step from the number on screen
+  ui.down.addEventListener('click', () => setQuietGain((Math.ceil(pct() / QUIET_STEP) - 1) * QUIET_STEP / 100, true));
+  ui.up.addEventListener('click', () => setQuietGain((Math.floor(pct() / QUIET_STEP) + 1) * QUIET_STEP / 100, true));
 
   ui.quiet.addEventListener('change', () => {
     userTouchedSettings = true;
