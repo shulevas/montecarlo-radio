@@ -109,7 +109,7 @@ with sync_playwright() as p:
             ratios.append(20 * math.log10(soft / loud))
     med = statistics.median(ratios) if ratios else 0
     check("quiet: 3 % is ~30 dB below 100 %", -36 < med < -24, f"-> {[round(r, 1) for r in ratios]} dB")
-    check("quiet: label shows 3.0%", page.text_content("#vol-value") == "3.0%", page.text_content("#vol-value"))
+    check("manual volume: label shows 3.0%", page.text_content("#vol-value") == "3.0%", page.text_content("#vol-value"))
 
     set_level(page, 25)
     page.wait_for_timeout(15000)

@@ -71,7 +71,6 @@
   let underruns = 0;           // quiet mode: times the buffer ran dry (debug)
   let dropped = 0;             // quiet mode: pieces thrown away as too far ahead (debug)
   let pieces = 0;              // quiet mode: pieces scheduled (debug)
-  let lastErr = '';            // quiet mode: last stream / decode error (debug)
   let keepAlive = null;        // quiet mode: silent looping <audio>, see startKeepAlive()
 
   // ---------- helpers ----------
@@ -349,7 +348,6 @@
       }
     } catch (e) {
       if (my !== q) return;          // aborted by us
-      lastErr = (e && (e.name + ': ' + e.message)) || String(e);
       scheduleReconnect();
     }
   }
@@ -503,24 +501,8 @@
     reconnectTimer = setTimeout(() => { reconnectTimer = null; connect(); }, delay);
   }
 
-  // quiet mode diagnostics under the slider (temporary, while quiet mode is checked on iPhone)
-  const diagEl = $('diag');
-  function showDiag() {
-    if (!diagEl || !quiet) return;
-    const lead = q && ctx ? Math.max(0, q.nextTime - ctx.currentTime).toFixed(1) + ' s' : '-';
-    diagEl.textContent = [
-      ctx ? ctx.state + ' ' + (ctx.sampleRate / 1000) + ' kHz' : 'no audio context',
-      'pieces ' + pieces,
-      'ahead ' + lead,
-      'silent audio ' + (keepAlive && !keepAlive.paused ? 'on' : 'off'),
-      navigator.audioSession ? 'session ' + navigator.audioSession.type : 'no audioSession',
-      lastErr,
-    ].filter(Boolean).join(' · ');
-  }
-
   // watchdog: a live stream that stops advancing is a dead stream
   setInterval(() => {
-    showDiag();
     if (!wantPlay || switching() || reconnectTimer) return;
     const idle = Date.now() - lastProgressAt;
     if (quiet) {

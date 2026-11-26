@@ -42,15 +42,15 @@
       <p id="now-artist" class="now-artist"></p>
     </section>
 
-    <!-- quiet mode: own decoder + gain, for speakers whose lowest volume step is still too loud -->
+    <!-- manual volume ("quiet mode" in code): own decoder + gain, for speakers whose lowest step is still too loud -->
     <label class="compat">
       <input id="quiet" type="checkbox">
-      <span>Quiet mode <small>(below the phone's lowest step)</small></span>
+      <span>Manual volume</span>
     </label>
 
-    <section class="volume" aria-label="Quiet level" hidden>
+    <section class="volume" aria-label="Manual volume" hidden>
       <div class="vol-head">
-        <span class="label">Level</span>
+        <span class="label">Volume</span>
         <output id="vol-value" class="vol-value">25%</output>
       </div>
       <div class="vol-row">
@@ -58,9 +58,7 @@
         <input id="vol" type="range" min="0" max="100" step="1" value="60">
         <button id="vol-up" class="step" type="button" aria-label="Louder">+</button>
       </div>
-      <p class="note">Phone at its lowest step, fine-tune here</p>
-      <p id="diag" class="note diag"></p>
-      <p class="note"><a href="test.html" style="color: var(--gold)">Audio test</a></p>
+      <p class="note">Goes below the phone's lowest step</p>
     </section>
   </main>
 
