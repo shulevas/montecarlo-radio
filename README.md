@@ -13,7 +13,7 @@ Unofficial. Not affiliated with the station; it only plays the public stream fro
 - Lock screen / Control Center controls via Media Session (song, artist, artwork, play/pause).
 - Auto-reconnect when the stream drops (backoff 0.5 s → 15 s, watchdog for frozen streams, instant retry when the network comes back).
 - One dark look in the station's colours: bottle green, a gunmetal play button with a gold light orbiting its rim while live.
-- Volume: the phone's own buttons.
+- Volume: the phone's own buttons, plus an optional quiet mode that goes below the phone's lowest step.
 
 ## Install on iPhone Home Screen
 
@@ -27,9 +27,13 @@ Unofficial. Not affiliated with the station; it only plays the public stream fro
 - Now playing: the Centova Cast endpoint `https://live.vblcast.com/external/rpc.php?m=streaminfo.get&username=montecarlo&rid=montecarlo`. It sends `Access-Control-Allow-Origin: *`; the Shoutcast `stats` / `currentsong` endpoints do not, and the stream refuses the preflight needed for in-stream ICY metadata.
 - The server double-encodes titles (UTF-8 read as Windows-1252, "BEYONCÃ‰"); `app.js` reverses that. Titles arrive in capitals and are shown in title case.
 
-## Volume slider (hidden)
+## Quiet mode
 
-The page has a Web Audio volume slider in dB (−60…0) behind `FEATURE_VOLUME` in `app.js`. It works in desktop browsers, but on an iPhone it had no effect on this live stream, so it is off and playback uses a plain `<audio>`. Web pages cannot read or set the iPhone's system volume.
+Some Bluetooth speakers follow the iPhone volume (absolute volume) and their lowest step is still loud. Quiet mode turns the audio down inside the page: Level goes from 100 % to 3 % (−30 dB) on a log scale, so the bottom of the slider is fine-grained. Mode and level are remembered.
+
+How: a Web Audio `MediaElementSource → GainNode` graph had no effect on this live stream on a real iPhone, and `audio.volume` is read-only on iOS. So quiet mode does not use `<audio>` at all: it `fetch()`es the MP3 stream, splits it into frames, decodes ~0.5 s pieces with `decodeAudioData` (each piece decoded with 4 frames of overlap, which joins them sample-exactly) and plays them through a `GainNode`.
+
+Trade-off: without an `<audio>` element iOS may treat it differently in the background. If quiet mode stops on the lock screen, turn it off: the default mode is a plain `<audio>` and keeps playing. Web pages cannot read or set the iPhone's system volume.
 
 ## Telegram (optional)
 
@@ -44,6 +48,9 @@ The same page opens as a Mini App: in [@BotFather](https://t.me/BotFather) `/new
 - [ ] Switch to another app: keeps playing.
 - [ ] Airplane mode for ~10 s, then off: reconnecting, then plays again by itself.
 - [ ] The gold light runs smoothly around the button rim; the phone does not get warm.
+- [ ] Quiet mode on a Bluetooth speaker: phone at its lowest step, Level down to 3 %: clearly quieter, no clicks or gaps.
+- [ ] Quiet mode, lock the screen: keeps playing for 5+ minutes (if not, note it: that is the iOS limit for this mode).
+- [ ] Quiet mode, switch to another app and back: plays on, or resumes by itself.
 
 ## Develop
 
