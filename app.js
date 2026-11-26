@@ -70,6 +70,9 @@
   let q = null;                // quiet mode: the current stream connection
   let underruns = 0;           // quiet mode: times the buffer ran dry (debug)
   let dropped = 0;             // quiet mode: pieces thrown away as too far ahead (debug)
+  let pieces = 0;              // quiet mode: pieces scheduled (debug)
+  let lastErr = '';            // quiet mode: last stream / decode error (debug)
+  let keepAlive = null;        // quiet mode: silent looping <audio>, see startKeepAlive()
 
   // ---------- helpers ----------
   const LN_MIN = Math.log(QUIET_MIN);
@@ -207,8 +210,9 @@
   // ---------- quiet mode: fetch + MP3 frames + decodeAudioData + GainNode ----------
   function ensureContext() {
     if (!ctx) {
-      // 44.1 kHz like the stream: pieces then join sample-exactly, no resampling at the seams
-      try { ctx = new AC({ latencyHint: 'playback', sampleRate: 44100 }); } catch (e) { ctx = new AC(); }
+      // hardware rate (48 kHz on iPhone): a forced 44.1 kHz context can stay silent on iOS.
+      // Pieces are resampled by our own continuous resampler, so the seams stay clean.
+      try { ctx = new AC({ latencyHint: 'playback' }); } catch (e) { ctx = new AC(); }
       gainNode = ctx.createGain();
       gainNode.gain.value = quietGain;
       gainNode.connect(ctx.destination);
@@ -218,6 +222,43 @@
       };
     }
     resumeContext();
+  }
+
+  // iOS: Web Audio alone is "ambient" audio, muted by the silent switch and stopped in the
+  // background. A playing <audio> element (here a silent loop) switches the page to media playback.
+  // Must start inside the tap.
+  function silentWavUrl() {
+    const rate = 8000, n = rate;                 // 1 s of 8-bit mono silence
+    const b = new Uint8Array(44 + n);
+    const v = new DataView(b.buffer);
+    const str = (o, s) => { for (let i = 0; i < s.length; i++) b[o + i] = s.charCodeAt(i); };
+    str(0, 'RIFF'); v.setUint32(4, 36 + n, true); str(8, 'WAVE');
+    str(12, 'fmt '); v.setUint32(16, 16, true); v.setUint16(20, 1, true); v.setUint16(22, 1, true);
+    v.setUint32(24, rate, true); v.setUint32(28, rate, true); v.setUint16(32, 1, true); v.setUint16(34, 8, true);
+    str(36, 'data'); v.setUint32(40, n, true);
+    b.fill(128, 44);                             // 8-bit PCM silence is 128
+    let s = '';
+    for (let i = 0; i < b.length; i++) s += String.fromCharCode(b[i]);
+    return 'data:audio/wav;base64,' + btoa(s);
+  }
+
+  function startKeepAlive() {
+    if (!keepAlive) {
+      keepAlive = new Audio(silentWavUrl());
+      keepAlive.loop = true;
+      keepAlive.setAttribute('playsinline', '');
+      keepAlive.addEventListener('pause', () => {
+        // iOS paused our media (call, another app, lock screen pause): treat as a system pause
+        if (quiet && wantPlay && !switching()) systemPaused();
+      });
+    }
+    markSwitch();
+    const p = keepAlive.play();
+    if (p && p.catch) p.catch(() => {});
+  }
+
+  function stopKeepAlive() {
+    if (keepAlive && !keepAlive.paused) { markSwitch(); keepAlive.pause(); }
   }
 
   function resumeContext() {
@@ -268,7 +309,7 @@
 
   async function quietConnect() {
     quietStop();
-    const my = q = { ctrl: new AbortController(), sources: new Set(), nextTime: 0, started: false };
+    const my = q = { ctrl: new AbortController(), sources: new Set(), frame: 0, nextTime: 0, started: false, rs: null };
     let rest = new Uint8Array(0);   // bytes not yet split into frames
     let fmt = null;
     const history = [];             // frames decoded again in front of the next piece
@@ -308,7 +349,39 @@
       }
     } catch (e) {
       if (my !== q) return;          // aborted by us
+      lastErr = (e && (e.name + ': ' + e.message)) || String(e);
       scheduleReconnect();
+    }
+  }
+
+  // Continuous cubic (Catmull-Rom) resampler: keeps its position and the last input samples
+  // between pieces, so the output is one seamless signal however it is cut into buffers.
+  class Resampler {
+    constructor(channels, inRate, outRate) {
+      this.step = inRate / outRate;
+      this.pos = 1;                 // read position in x = [last 4 input samples, new input]
+      this.tail = Array.from({ length: channels }, () => new Float32Array(4));
+    }
+    process(chans) {
+      const n = chans[0].length + 4;
+      // every output sample needs x[i-1..i+2]: i runs from >= 1 up to n-3
+      const count = Math.max(0, Math.floor((n - 3 - this.pos) / this.step) + 1);
+      const out = chans.map((d, c) => {
+        const x = new Float32Array(n);
+        x.set(this.tail[c]);
+        x.set(d, 4);
+        const y = new Float32Array(count);
+        let p = this.pos;
+        for (let k = 0; k < count; k++, p += this.step) {
+          const i = Math.floor(p), t = p - i;
+          const xm = x[i - 1], x0 = x[i], x1 = x[i + 1], x2 = x[i + 2];
+          y[k] = x0 + 0.5 * t * (x1 - xm + t * (2 * xm - 5 * x0 + 4 * x1 - x2 + t * (3 * (x0 - x1) + x2 - xm)));
+        }
+        this.tail[c] = x.slice(n - 4);
+        return y;
+      });
+      this.pos += count * this.step - (n - 4);   // old index n-4 is the new index 0
+      return out;
     }
   }
 
@@ -321,27 +394,37 @@
     const end = Math.max(0, decoded.length - fmt.spf);
     const start = Math.max(0, end - piece.length * fmt.spf);
     if (end <= start) return;
-    const buf = ctx.createBuffer(decoded.numberOfChannels, end - start, decoded.sampleRate);
-    for (let c = 0; c < decoded.numberOfChannels; c++) {
-      buf.getChannelData(c).set(decoded.getChannelData(c).subarray(start, end));
+    let chans = [];
+    for (let c = 0; c < decoded.numberOfChannels; c++) chans.push(decoded.getChannelData(c).subarray(start, end));
+    const rate = ctx.sampleRate;
+    if (decoded.sampleRate !== rate) {
+      if (!my.rs) my.rs = new Resampler(chans.length, decoded.sampleRate, rate);
+      chans = my.rs.process(chans);
     }
+    const len = chans[0].length;
+    if (!len) return;
+    const buf = ctx.createBuffer(chans.length, len, rate);
+    chans.forEach((d, c) => buf.getChannelData(c).set(d));
+    pieces += 1;
 
+    // schedule on whole sample frames so pieces butt exactly against each other
     const now = ctx.currentTime;
-    const dry = my.nextTime < now + 0.05;
+    const dry = my.frame / rate < now + 0.05;
     if (dry) {
       if (my.started) { underruns += 1; setStatus('loading', 'Buffering…'); }
-      my.nextTime = now + START_LEAD;
+      my.frame = Math.ceil((now + START_LEAD) * rate);
     }
-    if (my.nextTime - now > MAX_LEAD) { dropped += 1; return; }
+    if (my.frame / rate - now > MAX_LEAD) { dropped += 1; return; }
 
     const src = ctx.createBufferSource();
     src.buffer = buf;
     src.connect(gainNode);
     src.onended = () => my.sources.delete(src);
-    src.start(my.nextTime);
+    src.start(my.frame / rate);
     my.sources.add(src);
-    const startsIn = (my.nextTime - now) * 1000;
-    my.nextTime += buf.duration;
+    const startsIn = (my.frame / rate - now) * 1000;
+    my.frame += len;
+    my.nextTime = my.frame / rate;
     lastProgressAt = Date.now();
 
     if (dry) {
@@ -375,9 +458,11 @@
     attempts = 0;
     if (quiet) {
       destroyAudio();
+      startKeepAlive();
       ensureContext();
     } else {
       quietStop();
+      stopKeepAlive();
       ensureAudio();
     }
     connect();
@@ -388,6 +473,7 @@
     pausedBySystem = false;
     clearReconnect();
     quietStop();
+    stopKeepAlive();
     if (ctx && ctx.state === 'running') ctx.suspend().catch(() => {});   // let the audio hardware sleep
     if (audio) {
       markSwitch();
@@ -417,8 +503,24 @@
     reconnectTimer = setTimeout(() => { reconnectTimer = null; connect(); }, delay);
   }
 
+  // quiet mode diagnostics under the slider (temporary, while quiet mode is checked on iPhone)
+  const diagEl = $('diag');
+  function showDiag() {
+    if (!diagEl || !quiet) return;
+    const lead = q && ctx ? Math.max(0, q.nextTime - ctx.currentTime).toFixed(1) + ' s' : '-';
+    diagEl.textContent = [
+      ctx ? ctx.state + ' ' + (ctx.sampleRate / 1000) + ' kHz' : 'no audio context',
+      'pieces ' + pieces,
+      'ahead ' + lead,
+      'silent audio ' + (keepAlive && !keepAlive.paused ? 'on' : 'off'),
+      navigator.audioSession ? 'session ' + navigator.audioSession.type : 'no audioSession',
+      lastErr,
+    ].filter(Boolean).join(' · ');
+  }
+
   // watchdog: a live stream that stops advancing is a dead stream
   setInterval(() => {
+    showDiag();
     if (!wantPlay || switching() || reconnectTimer) return;
     const idle = Date.now() - lastProgressAt;
     if (quiet) {
@@ -607,9 +709,12 @@
     get audio() { return audio; },
     get ctx() { return ctx; },
     get gainNode() { return gainNode; },
+    Resampler,
     get state() {
       return {
-        wantPlay, quiet, attempts, underruns, dropped,
+        wantPlay, quiet, attempts, underruns, dropped, pieces,
+        keepAlive: keepAlive ? !keepAlive.paused : null,
+        rate: ctx ? ctx.sampleRate : null,
         gain: gainNode ? gainNode.gain.value : null,
         quietGain,
         ctx: ctx ? ctx.state : null,

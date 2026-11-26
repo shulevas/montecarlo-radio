@@ -204,3 +204,4 @@ input[type="range"]::-moz-range-thumb {
 .compat input:checked { background: var(--gold); border-color: var(--gold); }
 .compat input:checked::after { opacity: 1; }
 .compat small { opacity: .75; }
+.diag { opacity: .6; font-size: 11px; font-variant-numeric: tabular-nums; }

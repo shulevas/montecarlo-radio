@@ -49,7 +49,24 @@ with sync_playwright() as p:
     page = browser.new_page(viewport={"width": 390, "height": 844})
     errors = []
     page.on("pageerror", lambda e: errors.append(str(e)))
+    # run the audio context at 48 kHz like an iPhone, so quiet mode has to resample the 44.1 kHz stream
+    page.add_init_script("""(() => { const AC = window.AudioContext;
+      window.AudioContext = class extends AC { constructor(o) { super(Object.assign({}, o, { sampleRate: 48000 })); } }; })()""")
     page.goto(URL)
+
+    # resampler: cut into pieces it must give exactly the same signal as in one go
+    diff = page.evaluate("""(() => {
+      const R = window.__radio.Resampler, n = 44100, x = new Float32Array(n);
+      for (let i = 0; i < n; i++) x[i] = Math.sin(i * 0.05) * 0.8 + Math.sin(i * 0.31) * 0.1;
+      const one = new R(1, 44100, 48000).process([x])[0];
+      const r = new R(1, 44100, 48000), parts = [];
+      for (let a = 0; a < n; a += 1152 * 3 + 7) parts.push(r.process([x.subarray(a, Math.min(n, a + 1152 * 3 + 7))])[0]);
+      const cat = new Float32Array(parts.reduce((s, p) => s + p.length, 0)); let o = 0;
+      for (const p of parts) { cat.set(p, o); o += p.length; }
+      let m = 0; for (let i = 0; i < one.length; i++) m = Math.max(m, Math.abs(one[i] - cat[i]));
+      return [one.length, cat.length, m, one.some(Number.isNaN)];
+    })()""")
+    check("resampler: pieces == one go, 44.1 -> 48 kHz", diff[0] == diff[1] and diff[2] < 1e-6 and not diff[3], str(diff))
 
     check("quiet toggle visible, level hidden",
           page.locator(".compat").is_visible() and page.locator(".volume").is_hidden())
@@ -78,6 +95,7 @@ with sync_playwright() as p:
     st = page.evaluate("window.__radio.state")
     check("quiet: plays through own decoder, no <audio>", st["mode"] == "quiet" and st["paused"] is None
           and st["ctx"] == "running", str(st))
+    check("quiet: 48 kHz context, silent <audio> playing", st["rate"] == 48000 and st["keepAlive"], str(st))
 
     ratios = []
     for _ in range(3):
