@@ -31,7 +31,8 @@ body {
 }
 
 .app {
-  min-height: 100%;
+  /* --app-h: full screen height in the iOS Home Screen app, where 100% leaves out the status bar (app.js) */
+  min-height: var(--app-h, 100%);
   max-width: 420px;
   margin: 0 auto;
   padding: max(32px, env(safe-area-inset-top)) 28px max(28px, env(safe-area-inset-bottom));

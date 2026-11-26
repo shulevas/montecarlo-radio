@@ -683,6 +683,20 @@
   }
   applyScheme();
 
+  // iOS Home Screen app with a translucent status bar: 100% height is the screen minus the status
+  // bar, so the centred layout sat ~16 pt too high. Use the real screen height there.
+  if (navigator.standalone) {
+    const fit = () => {
+      const landscape = window.matchMedia('(orientation: landscape)').matches;
+      const h = landscape ? Math.min(screen.width, screen.height) : Math.max(screen.width, screen.height);
+      document.documentElement.style.setProperty('--app-h', h + 'px');
+    };
+    document.documentElement.style.overflow = 'hidden';   // the taller box must not make the page scroll
+    document.body.style.overflow = 'hidden';
+    fit();
+    window.addEventListener('resize', fit);
+  }
+
   // ---------- init ----------
   if (!quietSupported) ui.quiet.closest('label').hidden = true;
   setQuietGain(QUIET_DEFAULT, false);
